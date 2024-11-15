@@ -1,97 +1,71 @@
 package models
 
 import (
-	"errors"
-
+	"fmt"
 	"github.com/Massad/gin-boilerplate/db"
-	"github.com/Massad/gin-boilerplate/forms"
-
-	"golang.org/x/crypto/bcrypt"
+	"database/sql" 
+	"github.com/dgrijalva/jwt-go" 
+	"os"
+	"time"
 )
 
-//User ...
+// User モデル
 type User struct {
-	ID        int64  `db:"id, primarykey, autoincrement" json:"id"`
-	Email     string `db:"email" json:"email"`
-	Password  string `db:"password" json:"-"`
-	Name      string `db:"name" json:"name"`
-	UpdatedAt int64  `db:"updated_at" json:"-"`
-	CreatedAt int64  `db:"created_at" json:"-"`
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-//UserModel ...
 type UserModel struct{}
 
-var authModel = new(AuthModel)
-
-//Login ...
-func (m UserModel) Login(form forms.LoginForm) (user User, token Token, err error) {
-
-	err = db.GetDB().SelectOne(&user, "SELECT id, email, password, name, updated_at, created_at FROM public.user WHERE email=LOWER($1) LIMIT 1", form.Email)
-
-	if err != nil {
-		return user, token, err
-	}
-
-	//Compare the password form and database if match
-	bytePassword := []byte(form.Password)
-	byteHashedPassword := []byte(user.Password)
-
-	err = bcrypt.CompareHashAndPassword(byteHashedPassword, bytePassword)
-
-	if err != nil {
-		return user, token, err
-	}
-
-	//Generate the JWT auth token
-	tokenDetails, err := authModel.CreateToken(user.ID)
-	if err != nil {
-		return user, token, err
-	}
-
-	saveErr := authModel.CreateAuth(user.ID, tokenDetails)
-	if saveErr == nil {
-		token.AccessToken = tokenDetails.AccessToken
-		token.RefreshToken = tokenDetails.RefreshToken
-	}
-
-	return user, token, nil
+// ユーザー名でユーザーを検索する関数
+func GetUserByUsername(username string) (*User, error) {
+    var user User
+    // QueryRow is used to select a single row from the database
+    err := db.GetDB().QueryRow("SELECT id, username, password FROM Vocab_App.users WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, fmt.Errorf("user not found")
+        }
+        return nil, err
+    }
+    return &user, nil
 }
 
-//Register ...
-func (m UserModel) Register(form forms.RegisterForm) (user User, err error) {
-	getDb := db.GetDB()
-
-	//Check if the user exists in database
-	checkUser, err := getDb.SelectInt("SELECT count(id) FROM public.user WHERE email=LOWER($1) LIMIT 1", form.Email)
+// 新しいユーザーをDBに保存
+func CreateUser(user User) error {
+	// ユーザー情報をDBに挿入
+	_, err := db.GetDB().Exec("INSERT INTO Vocab_App.users (username, password) VALUES (?, ?)",
+		user.Username, user.Password)
 	if err != nil {
-		return user, errors.New("something went wrong, please try again later")
+		return fmt.Errorf("could not create user: %v", err)
 	}
-
-	if checkUser > 0 {
-		return user, errors.New("email already exists")
-	}
-
-	bytePassword := []byte(form.Password)
-	hashedPassword, err := bcrypt.GenerateFromPassword(bytePassword, bcrypt.DefaultCost)
-	if err != nil {
-		return user, errors.New("something went wrong, please try again later")
-	}
-
-	//Create the user and return back the user ID
-	err = getDb.QueryRow("INSERT INTO public.user(email, password, name) VALUES($1, $2, $3) RETURNING id", form.Email, string(hashedPassword), form.Name).Scan(&user.ID)
-	if err != nil {
-		return user, errors.New("something went wrong, please try again later")
-	}
-
-	user.Name = form.Name
-	user.Email = form.Email
-
-	return user, err
+	return nil
 }
 
-//One ...
-func (m UserModel) One(userID int64) (user User, err error) {
-	err = db.GetDB().SelectOne(&user, "SELECT id, email, name FROM public.user WHERE id=$1 LIMIT 1", userID)
-	return user, err
+// GenerateJWT トークンを生成する関数
+func GenerateJWT(userID uint) (string, error) {
+	// JWTの署名に使う秘密鍵
+	secretKey := []byte(os.Getenv("JWT_SECRET"))
+
+	// JWTトークンのクレーム設定
+	claims := &jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // トークンの有効期限を1日後に設定
+	}
+
+	// トークンの作成
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate token: %v", err)
+	}
+
+	return signedToken, nil
 }
+
+// //One ...
+// func (m UserModel) One(userID int64) (user User, err error) {
+// 	err = db.GetDB().SelectOne(&user, "SELECT id, email, name FROM public.user WHERE id=$1 LIMIT 1", userID)
+// 	return user, err
+// }

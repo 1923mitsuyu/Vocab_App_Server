@@ -1,151 +1,84 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
-
-	"github.com/Massad/gin-boilerplate/controllers"
+	// "github.com/Massad/gin-boilerplate/controllers"
 	"github.com/Massad/gin-boilerplate/db"
-	"github.com/Massad/gin-boilerplate/forms"
-	"github.com/gin-contrib/gzip"
-	uuid "github.com/google/uuid"
+	// uuid "github.com/google/uuid"
 	"github.com/joho/godotenv"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
+ 	"github.com/Massad/gin-boilerplate/routes"
+	"github.com/gin-gonic/gin" // Ginフレームワークのインポート
 )
 
-//CORSMiddleware ...
-//CORS (Cross-Origin Resource Sharing)
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost")
-		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Origin, Authorization, Accept, Client-Security-Token, Accept-Encoding, x-access-token")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		if c.Request.Method == "OPTIONS" {
-			fmt.Println("OPTIONS")
-			c.AbortWithStatus(200)
-		} else {
-			c.Next()
-		}
-	}
-}
+// var auth = new(controllers.AuthController)
 
-//RequestIDMiddleware ...
-//Generate a unique ID and attach it to each request for future reference or use
-func RequestIDMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		uuid := uuid.New()
-		c.Writer.Header().Set("X-Request-Id", uuid.String())
-		c.Next()
-	}
-}
-
-var auth = new(controllers.AuthController)
-
-//TokenAuthMiddleware ...
-//JWT Authentication middleware attached to each request that needs to be authenitcated to validate the access_token in the header
-func TokenAuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		auth.TokenValid(c)
-		c.Next()
-	}
-}
-
+// アプリケーションのエントリーポイント
 func main() {
-	//Load the .env file
+
+	// ルーターの設定 (ルートとミドルウェアを設定)
+	router := routes.SetupRouter() 
+
+	// ポート番号を環境変数から取得。設定されていなければデフォルトで8080を使用
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000" 
+	}
+
+	// .envファイルを読み込む
 	err := godotenv.Load(".env")
 	if err != nil {
+		// .envファイルが読み込めなかった場合、エラーログを出力して終了
 		log.Fatal("error: failed to load the env file")
 	}
 
+	// 環境変数が"PRODUCTION"なら、Ginフレームワークを本番モードに設定
 	if os.Getenv("ENV") == "PRODUCTION" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	//Start the default gin server
-	r := gin.Default()
-
-	//Custom form validator
-	binding.Validator = new(forms.DefaultValidator)
-
-	r.Use(CORSMiddleware())
-	r.Use(RequestIDMiddleware())
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	//Start PostgreSQL database
-	//Example: db.GetDB() - More info in the models folder
+	// DBの初期化処理
 	db.Init()
 
-	//Start Redis on database 1 - it's used to store the JWT but you can use it for anythig else
-	//Example: db.GetRedis().Set(KEY, VALUE, at.Sub(now)).Err()
-	db.InitRedis(1)
+	// HTMLテンプレートファイルをロード
+	router.LoadHTMLGlob("./public/html/*")
+	// 静的ファイル（例えばCSSや画像）を"/public"パスで提供
+	router.Static("/public", "./public")
 
-	v1 := r.Group("/v1")
-	{
-		/*** START USER ***/
-		user := new(controllers.UserController)
-
-		v1.POST("/user/login", user.Login)
-		v1.POST("/user/register", user.Register)
-		v1.GET("/user/logout", user.Logout)
-
-		/*** START AUTH ***/
-		auth := new(controllers.AuthController)
-
-		//Refresh the token when needed to generate new access_token and refresh_token for the user
-		v1.POST("/token/refresh", auth.Refresh)
-
-		/*** START Article ***/
-		article := new(controllers.ArticleController)
-
-		v1.POST("/article", TokenAuthMiddleware(), article.Create)
-		v1.GET("/articles", TokenAuthMiddleware(), article.All)
-		v1.GET("/article/:id", TokenAuthMiddleware(), article.One)
-		v1.PUT("/article/:id", TokenAuthMiddleware(), article.Update)
-		v1.DELETE("/article/:id", TokenAuthMiddleware(), article.Delete)
-	}
-
-	r.LoadHTMLGlob("./public/html/*")
-
-	r.Static("/public", "./public")
-
-	r.GET("/", func(c *gin.Context) {
+	// ルートURL（"/"）のGETリクエストを処理
+	router.GET("/", func(c *gin.Context) {
+		// レスポンスとしてHTMLを返す
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"ginBoilerplateVersion": "v0.03",
-			"goVersion":             runtime.Version(),
+			"ginBoilerplateVersion": "v0.03", // Ginのバージョンを表示
+			"goVersion":             runtime.Version(), // // Goのバージョンを表示
 		})
 	})
 
-	r.NoRoute(func(c *gin.Context) {
+	// どのルートにもマッチしない場合、404ページを表示
+	router.NoRoute(func(c *gin.Context) {
 		c.HTML(404, "404.html", gin.H{})
 	})
 
-	port := os.Getenv("PORT")
-
-	log.Printf("\n\n PORT: %s \n ENV: %s \n SSL: %s \n Version: %s \n\n", port, os.Getenv("ENV"), os.Getenv("SSL"), os.Getenv("API_VERSION"))
-
+	// SSL/TLS設定: 環境変数"SSL"が"TRUE"の場合、HTTPSでサーバーを起動
 	if os.Getenv("SSL") == "TRUE" {
 
-		//Generated using sh generate-certificate.sh
+		// SSL証明書と秘密鍵のパス
 		SSLKeys := &struct {
 			CERT string
 			KEY  string
 		}{
-			CERT: "./cert/myCA.cer",
-			KEY:  "./cert/myCA.key",
+			CERT: "./cert/myCA.cer", // SSL証明書
+			KEY:  "./cert/myCA.key", // SSL秘密鍵
 		}
 
-		r.RunTLS(":"+port, SSLKeys.CERT, SSLKeys.KEY)
+		// HTTPSサーバーをポート番号と証明書ファイルを指定して起動
+		router.RunTLS(":"+port, SSLKeys.CERT, SSLKeys.KEY)
 	} else {
-		r.Run(":" + port)
+		// SSL設定がない場合、通常のHTTPサーバーを起動
+		router.Run(":" + port)
 	}
 
 }

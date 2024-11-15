@@ -2,7 +2,6 @@ package forms
 
 import (
 	"encoding/json"
-
 	"github.com/go-playground/validator/v10"
 )
 
@@ -11,15 +10,14 @@ type UserForm struct{}
 
 //LoginForm ...
 type LoginForm struct {
-	Email    string `form:"email" json:"email" binding:"required,email"`
-	Password string `form:"password" json:"password" binding:"required,min=3,max=50"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 //RegisterForm ...
-type RegisterForm struct {
-	Name     string `form:"name" json:"name" binding:"required,min=3,max=20,fullName"` //fullName rule is in validator.go
-	Email    string `form:"email" json:"email" binding:"required,email"`
-	Password string `form:"password" json:"password" binding:"required,min=3,max=50"`
+type SignupForm struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required`
 }
 
 //Name ...
