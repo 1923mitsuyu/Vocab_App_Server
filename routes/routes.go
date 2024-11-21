@@ -22,6 +22,7 @@ func SetupRouter() *gin.Engine {
 		// コントローラーのインスタンスを作成
 		user := new(controllers.UserController)
 		deck := new(controllers.DeckController)
+		word := new(controllers.WordController)
 
 		// User-related endpoints
 		v1.POST("/login", user.Login)
@@ -29,9 +30,12 @@ func SetupRouter() *gin.Engine {
 		// v1.GET("/user/logout", user.Logout)
 
 		// Deck-related endpoints
-		v1.POST("/saveDeck", deck.AddDeck)
 		v1.GET("/fetchDecks/:userId", deck.FetchDecks)
-
+		v1.POST("/saveDeck", deck.AddDeck)
+		
+		// Word-related endppints
+		v1.GET("/fetchWords/:deckId", word.FetchWords)
+		v1.POST("/saveWord", word.AddWord)
 	}
 
 	return router
