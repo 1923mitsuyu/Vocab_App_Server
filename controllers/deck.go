@@ -66,10 +66,10 @@ func (ctrl DeckController) AddDeck(c *gin.Context) {
 
 	fmt.Println("Step3")
 	// Deck名が既に存在するか確認
-	existingDeck, err := models.GetDeckByName(deckForm.DeckName)
+	existingDeck, err := models.GetDeckByName(deckForm.DeckName, deckForm.UserID)
 	if err != nil && err.Error() != "deck not found" {
         // 他のエラー（DBエラー等）の場合
-        fmt.Printf("Error checking if user exists: %v", err)
+        fmt.Printf("Error checking if deck exists: %v", err)
         c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
         return
     }

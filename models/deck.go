@@ -20,12 +20,12 @@ type Deck struct {
 type DeckModel struct{}
 
 // Deck名でDeckを検索
-func GetDeckByName(deckname string) (*Deck, error) {
+func GetDeckByName(deckname string, user_id int) (*Deck, error) {
     var deck Deck
     // QueryRow is used to select a single row from the database
 	err := db.GetDB().QueryRow(
-		"SELECT id, name FROM Vocab_App.decks WHERE name = ?",
-		deckname,
+		"SELECT id, name FROM Vocab_App.decks WHERE name = ? AND userId = ?",
+		deckname, user_id,
 	).Scan(&deck.ID, &deck.DeckName)
 
     if err != nil {
