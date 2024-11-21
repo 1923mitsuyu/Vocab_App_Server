@@ -40,6 +40,12 @@ func (ctrl WordController) FetchWords(c *gin.Context) {
     }
 
     fmt.Println("Step7")
+	// ワードリストが空の場合、特別なメッセージを返す
+    if len(words) == 0 {
+        c.JSON(http.StatusOK, gin.H{"message": "No words found for this deck", "words": words})
+        return
+    }
+	
     // 成功した場合、ワードリストを返す
     c.JSON(http.StatusOK, gin.H{"message": "Words fetched successfully", "words": words}) 
 }
