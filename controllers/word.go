@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"strings"
 	"fmt"
 	"github.com/Massad/gin-boilerplate/forms"
 	"github.com/Massad/gin-boilerplate/models"
+	"github.com/Massad/gin-boilerplate/db"
 	//"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"github.com/gin-gonic/gin"
@@ -98,5 +100,88 @@ func (ctrl WordController) AddWord(c *gin.Context) {
 		"message": "Adding the word to the db successfully",
 		"word": word,
 	})
+}
+
+// 3. Edit an existing word 
+func (ctrl WordController) EditWord(c *gin.Context) {
+    var wordForm forms.EditWordForm
+
+	fmt.Printf("Step1")
+    // JSON データをバインド
+    if err := c.ShouldBindJSON(&wordForm); err != nil {
+        fmt.Printf("Error binding JSON: %v\n", err)
+        c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+        return
+    }
+
+	fmt.Printf("Step2")
+    // 動的にクエリを構築
+    query := "UPDATE words SET "
+    updates := []string{}
+    params := []interface{}{}
+
+    if wordForm.WordName != "" {
+        updates = append(updates, "word = ?")
+        params = append(params, wordForm.WordName)
+    }
+    if wordForm.Definition != "" {
+        updates = append(updates, "definition = ?")
+        params = append(params, wordForm.Definition)
+    }
+    if wordForm.Example != "" {
+        updates = append(updates, "example = ?")
+        params = append(params, wordForm.Example)
+    }
+    if wordForm.Translation != "" {
+        updates = append(updates, "translation = ?")
+        params = append(params, wordForm.Translation)
+    }
+
+	fmt.Printf("Step3")
+    if len(updates) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"message": "No fields to update"})
+        return
+    }
+
+	fmt.Printf("Step4")
+    query += strings.Join(updates, ", ") + " WHERE id = ?"
+    params = append(params, wordForm.WordID)
+
+	fmt.Printf("Step5")
+    // クエリの実行
+    stmt, err := db.GetDB().Prepare(query)
+    if err != nil {
+        fmt.Printf("Error preparing query: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to prepare update query"})
+        return
+    }
+    defer stmt.Close()
+
+	fmt.Printf("Step6")
+    result, err := stmt.Exec(params...)
+    if err != nil {
+        fmt.Printf("Error updating word: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update word"})
+        return
+    }
+
+	fmt.Printf("Step7")
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        fmt.Printf("Error retrieving rows affected: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve update result"})
+        return
+    }
+
+	fmt.Printf("Step8")
+    if rowsAffected == 0 {
+        fmt.Printf("No word found with id: %v\n", wordForm.WordID)
+        c.JSON(http.StatusNotFound, gin.H{"message": "Word not found"})
+        return
+    }
+
+	fmt.Printf("Step9!")
+    fmt.Println("Word updated successfully")
+    c.JSON(http.StatusOK, gin.H{"message": "Word updated successfully"})
 }
 

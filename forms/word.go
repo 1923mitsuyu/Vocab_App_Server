@@ -31,9 +31,10 @@ type AddWordForm struct {
 }
 
 // UpdateDeckForm is used to update an existing deck.
-type UpdateWordForm struct {
-    WordID    int      `json:"deckId" binding:"required"`
-    WordName  string   `json:"deckName" binding:"required"`
-    WordOrder int      `json:"deckOrder"`
-    DeckID    int      `json:"userId" binding:"required"`
+type EditWordForm struct {
+    WordID      int    `json:"wordId" binding:"required"`
+    WordName    string `json:"word" binding:"required"`
+    Definition  string `json:"definition" binding:"required"`
+    Example     string `json:"example" binding:"required"`
+    Translation string `json:"translation" binding:"required"`
 }

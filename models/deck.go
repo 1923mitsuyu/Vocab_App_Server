@@ -11,7 +11,7 @@ import (
 
 // Deck モデル
 type Deck struct {
-    ID       uint     `json:"id"`
+	DeckID    uint     `json:"id"`
     DeckName string   `json:"name"`
     DeckOrder int     `json:"deckOrder"`
     UserID    int     `json:"userId"`
@@ -26,7 +26,7 @@ func GetDeckByName(deckname string, user_id int) (*Deck, error) {
 	err := db.GetDB().QueryRow(
 		"SELECT id, name FROM Vocab_App.decks WHERE name = ? AND userId = ?",
 		deckname, user_id,
-	).Scan(&deck.ID, &deck.DeckName)
+	).Scan(&deck.DeckID, &deck.DeckName)
 
     if err != nil {
         if err == sql.ErrNoRows {
@@ -62,7 +62,7 @@ func (d *DeckModel) GetDecks(userID *int) ([]Deck, error) {
 	// Iterate over rows and append to decks slice
 	for rows.Next() {
 		var deck Deck
-		if err := rows.Scan(&deck.ID, &deck.DeckName, &deck.DeckOrder, &deck.UserID); err != nil {
+		if err := rows.Scan(&deck.DeckID, &deck.DeckName, &deck.DeckOrder, &deck.UserID); err != nil {
 			fmt.Printf("Error scanning row: %v", err)
 			return nil, err
 		}

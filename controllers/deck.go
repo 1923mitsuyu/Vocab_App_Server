@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Massad/gin-boilerplate/forms"
 	"github.com/Massad/gin-boilerplate/models"
+	"github.com/Massad/gin-boilerplate/db"
 	//"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,7 @@ func (ctrl DeckController) FetchDecks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Decks fetched successfully", "decks": decks})
 }
 
+// 2. Add a new deck to the db
 func (ctrl DeckController) AddDeck(c *gin.Context) {
 
 	var deckForm forms.AddDeckForm
@@ -75,7 +77,7 @@ func (ctrl DeckController) AddDeck(c *gin.Context) {
     }
 
 	fmt.Println("Step4")
-	if existingDeck != nil && existingDeck.ID != 0 {
+	if existingDeck != nil && existingDeck.DeckID != 0 {
 		fmt.Println("Deck %s is already taken", deckForm.DeckName)  // 既に存在するユーザー名をログに出力
 		c.JSON(http.StatusConflict, gin.H{"message": "Deck is already taken"})
 		return
@@ -103,3 +105,67 @@ func (ctrl DeckController) AddDeck(c *gin.Context) {
 		"deck": deck,
 	})
 }
+
+// 2. Edit an existing deck 
+func (ctrl DeckController) EditDeck(c *gin.Context) {
+    var deckForm forms.EditDeckForm
+
+    fmt.Println("Adding process start....")
+
+    // JSON データをバインド
+	fmt.Println("Step1")
+    if err := c.ShouldBindJSON(&deckForm); err != nil {
+        fmt.Printf("Error binding JSON: %v\n", err)
+        c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request", "error": err.Error()})
+        return
+    }
+
+    // バリデーション
+	fmt.Println("Step2")
+    if deckForm.DeckName == "" {
+        fmt.Printf("Missing deck name: %+v\n", deckForm)
+        c.JSON(http.StatusBadRequest, gin.H{"message": "Deck name is required"})
+        return
+    }
+
+    // データベースクエリの実行
+    query := "UPDATE decks SET name = ? WHERE id = ?"
+
+	fmt.Println("Step3")
+    stmt, err := db.GetDB().Prepare(query)
+    if err != nil {
+        fmt.Printf("Error preparing query: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to prepare update query", "error": err.Error()})
+        return
+    }
+    defer stmt.Close()
+
+	fmt.Println("Step4")
+    result, err := stmt.Exec(deckForm.DeckName, deckForm.DeckID)
+    if err != nil {
+        fmt.Printf("Error updating deck: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update deck", "error": err.Error()})
+        return
+    }
+
+	fmt.Println("Step5")
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        fmt.Printf("Error retrieving rows affected: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve update result", "error": err.Error()})
+        return
+    }
+
+	fmt.Println("Step6")
+    if rowsAffected == 0 {
+        fmt.Printf("No deck found with id: %v\n", deckForm.DeckID)
+        c.JSON(http.StatusNotFound, gin.H{"message": "Deck not found"})
+        return
+    }
+
+	fmt.Println("Step7")
+    fmt.Println("Deck updated successfully")
+    c.JSON(http.StatusOK, gin.H{"message": "Deck updated successfully"})
+}
+
+
