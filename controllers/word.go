@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"strconv"  
+    "bytes"
+    "io"
 )
 
 //UserController ...
@@ -254,6 +256,74 @@ func (ctrl WordController) EditCorrectCount(c *gin.Context) {
 	fmt.Printf("Step9!")
     fmt.Println("Word Correct Times Count updated successfully")
     c.JSON(http.StatusOK, gin.H{"message": "Word Correct Times Count updated successfully"})
+}
+
+// 4. Edit the word order on the list 
+func (ctrl WordController) EditWordOrder(c *gin.Context) {
+    var wordForms []forms.EditWordOrderForm
+
+    fmt.Println("Adding process start....")
+
+	// JSON データをバインドする前にリクエストボディを出力する
+	rawBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+    	fmt.Printf("Error reading request body: %v\n", err)
+    	c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read request body", "error": err.Error()})
+    	return
+	}
+	fmt.Printf("Raw JSON received: %s\n", string(rawBody))
+
+	// リクエストボディをリセットして再度読み取れるようにする
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+
+    // JSON データをバインド
+	fmt.Println("Step1")
+    if err := c.ShouldBindJSON(&wordForms); err != nil {
+        fmt.Printf("Error binding JSON: %v\n", err)
+        c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request", "error": err.Error()})
+        return
+    }
+
+	// データベースクエリの実行
+    query := "UPDATE words SET word_order = ? WHERE id = ? AND word_order != ?"
+
+	fmt.Println("Step2")
+    stmt, err := db.GetDB().Prepare(query)
+    if err != nil {
+        fmt.Printf("Error preparing query: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to prepare update query", "error": err.Error()})
+        return
+    }
+    defer stmt.Close()
+
+	fmt.Println("Step3")
+	for _, word := range wordForms {
+		// `wordOrder` が変更されていない場合はスキップ
+		result, err := stmt.Exec(word.WordOrder, word.WordID, word.WordOrder) 
+		if err != nil {
+			fmt.Printf("Error updating word order: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update word order", "error": err.Error()})
+			return
+		}
+		
+		fmt.Println("Step4")
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			fmt.Printf("Error retrieving rows affected: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve update result", "error": err.Error()})
+			return
+		}
+	
+		fmt.Println("Step5")
+		// `wordId` が存在しない場合のみエラーを出す
+		if rowsAffected == 0 {
+			fmt.Printf("No changes made or no word found with id: %v\n", word.WordID)
+		}
+	}
+
+	fmt.Println("Step6")
+    fmt.Println("Word order updated successfully")
+    c.JSON(http.StatusOK, gin.H{"message": "Word order updated successfully"})
 }
 
 func (ctrl WordController) DeleteWord(c *gin.Context) {

@@ -40,13 +40,19 @@ type EditWordForm struct {
 }
 
 type EditCorrectCountForm struct {
-    WordID      int    `json:"wordId" binding:"required"`
-    CorrectTimes *int `json:"correctTimes" binding:"required"`
+    WordID      int    	`json:"wordId" binding:"required"`
+    CorrectTimes *int 	`json:"correctTimes" binding:"required"`
+}
+
+type EditWordOrderForm struct {
+    WordID    uint      `json:"wordId" binding:"required"`
+  	WordOrder int   	`json:"word_order"`
 }
 
 // EditDeckForm is used to update an existing deck.
 type DeleteWordForm struct {
     WordID    uint      `json:"wordId" binding:"required"`
-    DeckID   int    `json:"deckId" binding:"required"`
+    DeckID    int    	`json:"deckId" binding:"required"`
 }
+
 
