@@ -27,3 +27,15 @@ type EditDeckForm struct {
     DeckID    uint      `json:"deckId" binding:"required"`
     DeckName  string   `json:"name" binding:"required"`
 }
+
+// EditDeckForm is used to update an existing deck.
+type EditDeckOrderForm struct {
+    DeckID    uint `json:"deckId" binding:"required"`
+    DeckOrder int  `json:"deckOrder"`
+}
+
+// EditDeckForm is used to update an existing deck.
+type DeleteDeckForm struct {
+    DeckID    uint      `json:"deckId" binding:"required"`
+    UserID   int    `json:"userId" binding:"required"`
+}

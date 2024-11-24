@@ -38,3 +38,15 @@ type EditWordForm struct {
     Example     string `json:"example" binding:"required"`
     Translation string `json:"translation" binding:"required"`
 }
+
+type EditCorrectCountForm struct {
+    WordID      int    `json:"wordId" binding:"required"`
+    CorrectTimes *int `json:"correctTimes" binding:"required"`
+}
+
+// EditDeckForm is used to update an existing deck.
+type DeleteWordForm struct {
+    WordID    uint      `json:"wordId" binding:"required"`
+    DeckID   int    `json:"deckId" binding:"required"`
+}
+

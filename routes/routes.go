@@ -33,11 +33,16 @@ func SetupRouter() *gin.Engine {
 		v1.GET("/fetchDecks/:userId", deck.FetchDecks)
 		v1.POST("/saveDeck", deck.AddDeck)
 		v1.PUT("/modifyDeck", deck.EditDeck)
+		v1.PUT("/modifyDeckOrders", deck.EditDeckOrder)
+		v1.DELETE("/removeDeck", deck.DeleteDeck)
+		
 		
 		// Word-related endppints
 		v1.GET("/fetchWords/:deckId", word.FetchWords)
 		v1.POST("/saveWord", word.AddWord)
 		v1.PUT("/modifyWord", word.EditWord)
+		v1.PUT("/modifyCorrectCount", word.EditCorrectCount)
+		v1.DELETE("/removeWord", word.DeleteWord)
 	}
 
 	return router
