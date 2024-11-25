@@ -189,73 +189,55 @@ func (ctrl WordController) EditWord(c *gin.Context) {
 
 // 3. Edit an existing word 
 func (ctrl WordController) EditCorrectCount(c *gin.Context) {
-    var wordForm forms.EditCorrectCountForm
+    var wordForms []forms.EditCorrectCountForm
 
 	fmt.Printf("Step1")
     // JSON データをバインド
-    if err := c.ShouldBindJSON(&wordForm); err != nil {
+    if err := c.ShouldBindJSON(&wordForms); err != nil {
         fmt.Printf("Error binding JSON: %v\n", err)
         c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
         return
     }
 
 	fmt.Printf("Step2")
-    // 動的にクエリを構築
-    query := "UPDATE words SET "
-    updates := []string{}
-    params := []interface{}{}
-
-    if wordForm.CorrectTimes != nil {
-        updates = append(updates, "correctTimes = ?")
-        params = append(params, *wordForm.CorrectTimes) 
-    }
-
-	fmt.Printf("Step3")
-    if len(updates) == 0 {
-        c.JSON(http.StatusBadRequest, gin.H{"message": "No fields to update"})
-        return
-    }
-
-	fmt.Printf("Step4")
-    query += strings.Join(updates, ", ") + " WHERE id = ?"
-    params = append(params, wordForm.WordID)
-
-	fmt.Printf("Step5")
-    // クエリの実行
+    query := "UPDATE words SET correctTimes = ? WHERE id = ?"
+ 
     stmt, err := db.GetDB().Prepare(query)
     if err != nil {
         fmt.Printf("Error preparing query: %v\n", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to prepare update query"})
+        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to prepare update query", "error": err.Error()})
         return
     }
     defer stmt.Close()
 
-	fmt.Printf("Step6")
-    result, err := stmt.Exec(params...)
-    if err != nil {
-        fmt.Printf("Error updating word: %v\n", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update word"})
-        return
-    }
+	fmt.Println("Step3")
+	for _, word := range wordForms {
+		// `correct count` が変更されていない場合はスキップ
+		result, err := stmt.Exec(word.CorrectTimes, word.WordID) 
+		if err != nil {
+			fmt.Printf("Error updating word correct count: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update word correct count", "error": err.Error()})
+			return
+		}
+		
+		fmt.Println("Step4")
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			fmt.Printf("Error retrieving rows affected: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve update result", "error": err.Error()})
+			return
+		}
+	
+		fmt.Println("Step5")
+		// `wordId` が存在しない場合のみエラーを出す
+		if rowsAffected == 0 {
+			fmt.Printf("No changes made or no word found with id: %v\n", word.WordID)
+		}
+	}
 
-	fmt.Printf("Step7")
-    rowsAffected, err := result.RowsAffected()
-    if err != nil {
-        fmt.Printf("Error retrieving rows affected: %v\n", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve update result"})
-        return
-    }
-
-	fmt.Printf("Step8")
-    if rowsAffected == 0 {
-        fmt.Printf("No word found with id: %v\n", wordForm.WordID)
-        c.JSON(http.StatusNotFound, gin.H{"message": "Word not found"})
-        return
-    }
-
-	fmt.Printf("Step9!")
-    fmt.Println("Word Correct Times Count updated successfully")
-    c.JSON(http.StatusOK, gin.H{"message": "Word Correct Times Count updated successfully"})
+	fmt.Println("Step6")
+    fmt.Println("Word correct count updated successfully")
+    c.JSON(http.StatusOK, gin.H{"message": "Word correct count updated successfully"})
 }
 
 // 4. Edit the word order on the list 
