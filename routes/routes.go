@@ -23,6 +23,7 @@ func SetupRouter() *gin.Engine {
 		user := new(controllers.UserController)
 		deck := new(controllers.DeckController)
 		word := new(controllers.WordController)
+		ai := new(controllers.AIController)
 
 		// User-related endpoints
 		v1.POST("/login", user.Login)
@@ -43,6 +44,9 @@ func SetupRouter() *gin.Engine {
 		v1.PUT("/modifyCorrectCount", word.EditCorrectCount)
 		v1.PUT("/modifyWordOrders", word.EditWordOrder)
 		v1.DELETE("/removeWord", word.DeleteWord)
+
+		// AI related endpoints
+		v1.POST("/generate", ai.GenerateContent)
 	}
 
 	return router

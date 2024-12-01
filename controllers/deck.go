@@ -5,7 +5,6 @@ import (
 	"github.com/Massad/gin-boilerplate/forms"
 	"github.com/Massad/gin-boilerplate/models"
 	"github.com/Massad/gin-boilerplate/db"
-	//"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"strconv"  
@@ -13,7 +12,6 @@ import (
     "io"
 )
 
-//UserController ...
 type DeckController struct{}
 
 var deckModel = new(models.DeckModel)

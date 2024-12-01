@@ -5,14 +5,11 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	// "github.com/Massad/gin-boilerplate/controllers"
 	"github.com/Massad/gin-boilerplate/db"
-	// uuid "github.com/google/uuid"
 	"github.com/joho/godotenv"
  	"github.com/Massad/gin-boilerplate/routes"
-	"github.com/gin-gonic/gin" // Ginフレームワークのインポート
+	"github.com/gin-gonic/gin" 
 )
-
 
 // var auth = new(controllers.AuthController)
 
@@ -80,5 +77,4 @@ func main() {
 		// SSL設定がない場合、通常のHTTPサーバーを起動
 		router.Run(":" + port)
 	}
-
 }
