@@ -46,7 +46,8 @@ func SetupRouter() *gin.Engine {
 		v1.DELETE("/removeWord", word.DeleteWord)
 
 		// AI related endpoints
-		v1.POST("/generate", ai.GenerateContent)
+		v1.POST("/generateContent", ai.GenerateContent)
+		v1.POST("/generateTranslation", ai.GenerateTranslation)
 	}
 
 	return router
