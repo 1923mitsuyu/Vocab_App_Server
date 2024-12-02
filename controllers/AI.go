@@ -184,3 +184,4 @@ func (ctrl AIController) AddBrackets(c *gin.Context) {
 		"content": generatedContent,
 	})
 }
+
