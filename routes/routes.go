@@ -48,6 +48,7 @@ func SetupRouter() *gin.Engine {
 		// AI related endpoints
 		v1.POST("/generateContent", ai.GenerateContent)
 		v1.POST("/generateTranslation", ai.GenerateTranslation)
+		v1.POST("/addBrackets", ai.AddBrackets)
 	}
 
 	return router
